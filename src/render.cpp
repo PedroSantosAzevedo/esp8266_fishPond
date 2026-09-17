@@ -2,31 +2,23 @@
 #include "config.h"
 #include <math.h>
 
-// Fish are drawn procedurally each frame as a small rotated silhouette
-// (tapered body from overlapping circles + a wiggling triangular tail)
-// rather than a fixed sprite sheet. This gives smooth rotation to any
-// heading angle (not just 8 snapped directions) and a continuous tail
-// animation, at negligible CPU cost for 3 fish at ~30fps.
+// Fish body rendering, inspired by chain/IK fish-body sketches (a spine of
+// segments with a tapered width profile, drawn as a smooth silhouette) but
+// adapted to be cheap on an ESP8266: instead of solving per-frame angle
+// constraints along a segment chain, the spine points are just sampled from
+// each fish's recorded trail (see fish.h/config.h). That means no trig is
+// needed to place the segments at all - only a normalize per segment to get
+// the perpendicular (width) direction, plus one sin() for the tail wiggle.
+static const float BODY_WIDTH_PROFILE[NUM_BODY_SEGMENTS] = {0.45f, 0.85f, 1.0f, 0.85f, 0.6f, 0.32f};
 
-static void rotatePoint(float lx, float ly, float cosA, float sinA, float cx, float cy,
-                          int &outX, int &outY) {
-  float wx = lx * cosA - ly * sinA;
-  float wy = lx * sinA + ly * cosA;
-  outX = (int)roundf(cx + wx);
-  outY = (int)roundf(cy + wy);
-}
-
-void drawFlower(Adafruit_SSD1306 &display, const Flower &flower) {
-  int cx = (int)roundf(flower.pos.x);
-  int cy = (int)roundf(flower.pos.y);
-  int offset = (int)FLOWER_PETAL_OFFSET;
-  int r = (int)FLOWER_PETAL_RADIUS;
-
-  display.fillCircle(cx, cy, 1, SSD1306_WHITE);
-  display.fillCircle(cx - offset, cy, r, SSD1306_WHITE);
-  display.fillCircle(cx + offset, cy, r, SSD1306_WHITE);
-  display.fillCircle(cx, cy - offset, r, SSD1306_WHITE);
-  display.fillCircle(cx, cy + offset, r, SSD1306_WHITE);
+void drawLeaf(Adafruit_SSD1306 &display, const Leaf &leaf) {
+  int cx = (int)roundf(leaf.pos.x);
+  int cy = (int)roundf(leaf.pos.y);
+  display.fillCircle(cx, cy, (int)LEAF_RADIUS, SSD1306_WHITE);
+  // Pac-Man-style notch bitten out of the lily pad, precomputed at init.
+  display.fillTriangle(cx, cy, cx + (int)roundf(leaf.notchA.x), cy + (int)roundf(leaf.notchA.y),
+                        cx + (int)roundf(leaf.notchB.x), cy + (int)roundf(leaf.notchB.y),
+                        SSD1306_BLACK);
 }
 
 void drawFood(Adafruit_SSD1306 &display, const Food &food) {
@@ -35,25 +27,50 @@ void drawFood(Adafruit_SSD1306 &display, const Food &food) {
 }
 
 void drawFish(Adafruit_SSD1306 &display, const Fish &fish) {
-  float cosA = cosf(fish.heading);
-  float sinA = sinf(fish.heading);
-  float cx = fish.pos.x;
-  float cy = fish.pos.y;
+  Vec2 seg[NUM_BODY_SEGMENTS];
+  Vec2 perp[NUM_BODY_SEGMENTS];
+  int Lx[NUM_BODY_SEGMENTS], Ly[NUM_BODY_SEGMENTS], Rx[NUM_BODY_SEGMENTS], Ry[NUM_BODY_SEGMENTS];
 
-  // Body: three overlapping circles, tapering toward the head (+x local).
-  int bx, by;
-  rotatePoint(1.2f, 0, cosA, sinA, cx, cy, bx, by);
-  display.fillCircle(bx, by, 1, SSD1306_WHITE);
-  rotatePoint(0, 0, cosA, sinA, cx, cy, bx, by);
-  display.fillCircle(bx, by, (int)FISH_BODY_RADIUS, SSD1306_WHITE);
-  rotatePoint(-1.0f, 0, cosA, sinA, cx, cy, bx, by);
-  display.fillCircle(bx, by, (int)FISH_BODY_RADIUS - 1, SSD1306_WHITE);
+  for (int i = 0; i < NUM_BODY_SEGMENTS; i++) {
+    seg[i] = fish.trail[i * SEGMENT_GAP_FRAMES];
+  }
 
-  // Tail: a triangle behind the body, tip swaying side to side over time.
+  for (int i = 0; i < NUM_BODY_SEGMENTS; i++) {
+    Vec2 tangent;
+    if (i == 0) {
+      tangent = seg[0] - seg[1];
+    } else if (i == NUM_BODY_SEGMENTS - 1) {
+      tangent = seg[i - 1] - seg[i];
+    } else {
+      tangent = seg[i - 1] - seg[i + 1];
+    }
+    tangent = tangent.normalized();
+    perp[i] = Vec2(-tangent.y, tangent.x);
+
+    float halfW = BODY_WIDTH_PROFILE[i] * FISH_MAX_HALF_WIDTH;
+    Vec2 l = seg[i] + perp[i] * halfW;
+    Vec2 r = seg[i] - perp[i] * halfW;
+    Lx[i] = (int)roundf(l.x);
+    Ly[i] = (int)roundf(l.y);
+    Rx[i] = (int)roundf(r.x);
+    Ry[i] = (int)roundf(r.y);
+  }
+
+  // Rounded nose.
+  display.fillCircle((int)roundf(seg[0].x), (int)roundf(seg[0].y),
+                      (int)roundf(BODY_WIDTH_PROFILE[0] * FISH_MAX_HALF_WIDTH), SSD1306_WHITE);
+
+  // Tapered body as a triangle strip between consecutive left/right edges.
+  for (int i = 0; i < NUM_BODY_SEGMENTS - 1; i++) {
+    display.fillTriangle(Lx[i], Ly[i], Rx[i], Ry[i], Lx[i + 1], Ly[i + 1], SSD1306_WHITE);
+    display.fillTriangle(Rx[i], Ry[i], Lx[i + 1], Ly[i + 1], Rx[i + 1], Ry[i + 1], SSD1306_WHITE);
+  }
+
+  // Tail fin: swishes side to side using the tail segment's own tangent/perpendicular.
+  int tailIdx = NUM_BODY_SEGMENTS - 1;
+  Vec2 tailDir = (seg[tailIdx - 1] - seg[tailIdx]).normalized();
   float wiggle = sinf(fish.wigglePhase) * FISH_WIGGLE_AMPLITUDE;
-  int t0x, t0y, t1x, t1y, t2x, t2y;
-  rotatePoint(-1.5f, -FISH_TAIL_SPREAD, cosA, sinA, cx, cy, t0x, t0y);
-  rotatePoint(-1.5f, FISH_TAIL_SPREAD, cosA, sinA, cx, cy, t1x, t1y);
-  rotatePoint(-1.5f - FISH_TAIL_LENGTH, wiggle, cosA, sinA, cx, cy, t2x, t2y);
-  display.fillTriangle(t0x, t0y, t1x, t1y, t2x, t2y, SSD1306_WHITE);
+  Vec2 tailTip = seg[tailIdx] - tailDir * TAIL_FIN_LENGTH + perp[tailIdx] * wiggle;
+  display.fillTriangle(Lx[tailIdx], Ly[tailIdx], Rx[tailIdx], Ry[tailIdx],
+                        (int)roundf(tailTip.x), (int)roundf(tailTip.y), SSD1306_WHITE);
 }

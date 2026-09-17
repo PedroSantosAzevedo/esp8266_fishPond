@@ -13,9 +13,9 @@
 #define I2C_SCL_PIN 5
 
 // ================= Scene population =================
-#define NUM_FISH 5
-#define NUM_FLOWERS 2
-#define NUM_FOOD 3
+#define NUM_FISH 3
+#define NUM_LEAVES 4
+#define NUM_FOOD 1
 
 // ================= Timing =================
 #define FRAME_INTERVAL_MS 33UL       // ~30 fps target
@@ -33,9 +33,9 @@
 #define SEPARATION_WEIGHT 2.2f
 #define SEPARATION_HARD_DIST 5.0f    // px: hard positional correction, last-resort anti-overlap
 
-#define FLOWER_AVOID_RADIUS 12.0f    // px: fish start steering away from flowers
-#define FLOWER_AVOID_WEIGHT 2.0f
-#define FLOWER_HARD_RADIUS 6.0f      // px: hard positional correction, last-resort anti-overlap
+#define LEAF_AVOID_RADIUS 12.0f      // px: fish start steering away from leaves
+#define LEAF_AVOID_WEIGHT 2.0f
+#define LEAF_HARD_RADIUS 6.0f        // px: hard positional correction, last-resort anti-overlap
 
 #define BOUNDARY_MARGIN 6.0f         // px: soft steering margin from screen edges
 #define BOUNDARY_WEIGHT 2.5f
@@ -43,13 +43,26 @@
 #define CHASE_SWITCH_MARGIN 4.0f     // px: hysteresis so the "closest fish" doesn't flap between two fish
 #define EAT_DISTANCE 3.0f            // px: how close the chasing fish must get to eat the food
 
-// ================= Fish visual size =================
-#define FISH_BODY_RADIUS 2.0f
-#define FISH_TAIL_LENGTH 3.0f
-#define FISH_TAIL_SPREAD 1.3f
-#define FISH_WIGGLE_SPEED 0.35f      // radians of tail phase advanced per frame
-#define FISH_WIGGLE_AMPLITUDE 1.4f   // px of tail-tip sideways sway
+#define LEAF_SHOULD_COLIDE 0          // 1 = leaves are hard obstacles, 0 = leaves are soft obstacles
 
-// ================= Flower visual size =================
-#define FLOWER_PETAL_OFFSET 2.0f
-#define FLOWER_PETAL_RADIUS 1.0f
+// ================= Fish body (trail-follow segments) =================
+// The body is not a rigid rotated sprite: each fish remembers its last
+// TRAIL_LEN positions, and NUM_BODY_SEGMENTS points are sampled out of that
+// history (SEGMENT_GAP_FRAMES apart) to become the body's spine. Because the
+// spine is literally the path the fish swam, it naturally curves into an
+// S-shape through turns, the same look as a chain/IK fish body, without
+// having to solve any per-frame angle constraints.
+#define NUM_BODY_SEGMENTS 6           // head + 5 trailing body points
+#define SEGMENT_GAP_FRAMES 8          // frames of trail history between segments
+#define TRAIL_LEN ((NUM_BODY_SEGMENTS - 1) * SEGMENT_GAP_FRAMES + 2)
+// Tuned for the FISH_SPEED above (visual body length ~= (NUM_BODY_SEGMENTS-1)
+// * SEGMENT_GAP_FRAMES * FISH_SPEED px) - if FISH_SPEED changes a lot,
+// SEGMENT_GAP_FRAMES may need adjusting to keep the fish a sensible size.
+#define FISH_MAX_HALF_WIDTH 2.6f      // px, half-width at the widest body segment
+#define TAIL_FIN_LENGTH 3.5f          // px, how far the tail fin extends past the last segment
+#define FISH_WIGGLE_SPEED 0.35f       // radians of tail phase advanced per frame
+#define FISH_WIGGLE_AMPLITUDE 1.6f    // px of tail-tip sideways sway
+
+// ================= Leaf (lily pad) visual size =================
+#define LEAF_RADIUS 6.0f              // px
+#define LEAF_NOTCH_HALF_ANGLE 0.35f   // radians, half-width of the pac-man-style notch wedge

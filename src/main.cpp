@@ -2,39 +2,48 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <math.h>
 
 #include "config.h"
 #include "vec2.h"
 #include "fish.h"
 #include "food.h"
-#include "flower.h"
+#include "leaf.h"
 #include "render.h"
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 Fish fishes[NUM_FISH];
-Flower flowers[NUM_FLOWERS];
+Leaf leaves[NUM_LEAVES];
 Food foods[NUM_FOOD];
 
 unsigned long lastFrameAt = 0;
 
-static bool tooCloseToOtherFlowers(const Vec2 &p, int placedCount) {
+static bool tooCloseToOtherLeaves(const Vec2 &p, int placedCount) {
   for (int i = 0; i < placedCount; i++) {
-    if ((p - flowers[i].pos).length() < FLOWER_AVOID_RADIUS * 1.5f) return true;
+    if ((p - leaves[i].pos).length() < LEAF_AVOID_RADIUS * 1.5f) return true;
   }
   return false;
 }
 
-static void initFlowers() {
-  for (int i = 0; i < NUM_FLOWERS; i++) {
+static void initLeaves() {
+  for (int i = 0; i < NUM_LEAVES; i++) {
     Vec2 p;
     int attempts = 0;
     do {
       p = Vec2(randomFloat(BOUNDARY_MARGIN + 4, SCREEN_WIDTH - BOUNDARY_MARGIN - 4),
                 randomFloat(BOUNDARY_MARGIN + 4, SCREEN_HEIGHT - BOUNDARY_MARGIN - 4));
       attempts++;
-    } while (tooCloseToOtherFlowers(p, i) && attempts < 30);
-    flowers[i].pos = p;
+    } while (tooCloseToOtherLeaves(p, i) && attempts < 30);
+    leaves[i].pos = p;
+
+    // Precompute the notch wedge once so drawing never needs sin/cos.
+    float notchAngle = randomFloat(-PI, PI);
+    float na1 = notchAngle - LEAF_NOTCH_HALF_ANGLE;
+    float na2 = notchAngle + LEAF_NOTCH_HALF_ANGLE;
+    float notchLen = LEAF_RADIUS + 1.0f;
+    leaves[i].notchA = Vec2(cosf(na1), sinf(na1)) * notchLen;
+    leaves[i].notchB = Vec2(cosf(na2), sinf(na2)) * notchLen;
   }
 }
 
@@ -52,7 +61,7 @@ void setup() {
   display.clearDisplay();
   display.display();
 
-  initFlowers();
+  initLeaves();
   initFish(fishes, NUM_FISH);
   for (int i = 0; i < NUM_FOOD; i++) {
     foods[i].active = false;
@@ -65,12 +74,12 @@ void loop() {
   if (now - lastFrameAt < FRAME_INTERVAL_MS) return;
   lastFrameAt = now;
 
-  updateFood(foods, NUM_FOOD, fishes, NUM_FISH, flowers, NUM_FLOWERS);
+  updateFood(foods, NUM_FOOD, fishes, NUM_FISH, leaves, NUM_LEAVES);
   assignChaser(fishes, NUM_FISH, foods, NUM_FOOD);
-  updateFish(fishes, NUM_FISH, flowers, NUM_FLOWERS, foods, NUM_FOOD);
+  updateFish(fishes, NUM_FISH, leaves, NUM_LEAVES, foods, NUM_FOOD);
 
   display.clearDisplay();
-  for (int i = 0; i < NUM_FLOWERS; i++) drawFlower(display, flowers[i]);
+  for (int i = 0; i < NUM_LEAVES; i++) drawLeaf(display, leaves[i]);
   for (int i = 0; i < NUM_FOOD; i++) drawFood(display, foods[i]);
   for (int i = 0; i < NUM_FISH; i++) drawFish(display, fishes[i]);
   display.display();

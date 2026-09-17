@@ -1,9 +1,10 @@
 #include "fish.h"
 #include "food.h"
-#include "flower.h"
+#include "leaf.h"
 #include "config.h"
 #include <Arduino.h>
 #include <math.h>
+#include <string.h>
 
 static float wrapAngle(float a) {
   while (a > PI) a -= 2 * PI;
@@ -20,51 +21,54 @@ void initFish(Fish fishes[], int count) {
     fishes[i].wanderHeading = fishes[i].heading;
     fishes[i].wigglePhase = randomFloat(0, 2 * PI);
     fishes[i].state = WANDER;
+    for (int j = 0; j < TRAIL_LEN; j++) fishes[i].trail[j] = fishes[i].pos;
   }
 }
 
 void assignChaser(Fish fishes[], int fishCount, Food foods[], int foodCount) {
-  // Single-food design today, but written to generalize if NUM_FOOD grows.
-  int activeFoodIdx = -1;
-  for (int f = 0; f < foodCount; f++) {
-    if (foods[f].active) {
-      activeFoodIdx = f;
-      break;
-    }
-  }
-
-  if (activeFoodIdx == -1) {
-    for (int i = 0; i < fishCount; i++) fishes[i].state = WANDER;
-    return;
-  }
-
-  Vec2 foodPos = foods[activeFoodIdx].pos;
-  int bestIdx = -1;
-  float bestDist = 1e9f;
-  int currentChaser = -1;
-  float currentChaserDist = 1e9f;
-
+  // Each active food claims its nearest still-unclaimed fish (foods are
+  // processed in index order, so with NUM_FOOD < NUM_FISH every food
+  // normally gets a chaser). Hysteresis per food avoids handing the chase
+  // to a marginally-closer fish every single frame.
+  bool claimed[NUM_FISH] = {false};
+  int8_t prevTarget[NUM_FISH];
   for (int i = 0; i < fishCount; i++) {
-    float d = (fishes[i].pos - foodPos).length();
-    if (d < bestDist) {
-      bestDist = d;
-      bestIdx = i;
-    }
-    if (fishes[i].state == CHASE) {
-      currentChaser = i;
-      currentChaserDist = d;
-    }
+    prevTarget[i] = (fishes[i].state == CHASE) ? fishes[i].targetFood : (int8_t)-1;
+    fishes[i].state = WANDER;
+    fishes[i].targetFood = -1;
   }
 
-  // Hysteresis: don't hand the chase to a marginally-closer fish every frame.
-  int chosen = bestIdx;
-  if (currentChaser != -1 && currentChaser != bestIdx &&
-      (currentChaserDist - bestDist) < CHASE_SWITCH_MARGIN) {
-    chosen = currentChaser;
-  }
+  for (int k = 0; k < foodCount; k++) {
+    if (!foods[k].active) continue;
 
-  for (int i = 0; i < fishCount; i++) {
-    fishes[i].state = (i == chosen) ? CHASE : WANDER;
+    int bestIdx = -1;
+    float bestDist = 1e9f;
+    int prevChaser = -1;
+    float prevChaserDist = 1e9f;
+    for (int i = 0; i < fishCount; i++) {
+      if (claimed[i]) continue;
+      float d = (fishes[i].pos - foods[k].pos).length();
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+      }
+      if (prevTarget[i] == k) {
+        prevChaser = i;
+        prevChaserDist = d;
+      }
+    }
+
+    int chosen = bestIdx;
+    if (prevChaser != -1 && prevChaser != bestIdx &&
+        (prevChaserDist - bestDist) < CHASE_SWITCH_MARGIN) {
+      chosen = prevChaser;
+    }
+
+    if (chosen != -1) {
+      fishes[chosen].state = CHASE;
+      fishes[chosen].targetFood = k;
+      claimed[chosen] = true;
+    }
   }
 }
 
@@ -79,7 +83,7 @@ static Vec2 boundaryForce(const Vec2 &pos) {
   return f;
 }
 
-void updateFish(Fish fishes[], int fishCount, Flower flowers[], int flowerCount,
+void updateFish(Fish fishes[], int fishCount, Leaf leaves[], int leafCount,
                  Food foods[], int foodCount) {
   for (int i = 0; i < fishCount; i++) {
     Fish &f = fishes[i];
@@ -87,15 +91,8 @@ void updateFish(Fish fishes[], int fishCount, Flower flowers[], int flowerCount,
     // 1. Desired direction from current behavior state.
     Vec2 desired;
     if (f.state == CHASE) {
-      int fi = -1;
-      for (int k = 0; k < foodCount; k++) {
-        if (foods[k].active) {
-          fi = k;
-          break;
-        }
-      }
-      if (fi >= 0) {
-        desired = (foods[fi].pos - f.pos).normalized() * CHASE_WEIGHT;
+      if (f.targetFood >= 0 && f.targetFood < foodCount && foods[f.targetFood].active) {
+        desired = (foods[f.targetFood].pos - f.pos).normalized() * CHASE_WEIGHT;
       } else {
         f.state = WANDER;
       }
@@ -118,15 +115,17 @@ void updateFish(Fish fishes[], int fishCount, Flower flowers[], int flowerCount,
       }
     }
 
-    // 3. Flower avoidance (soft steering).
-    for (int k = 0; k < flowerCount; k++) {
-      Vec2 diff = f.pos - flowers[k].pos;
-      float d = diff.length();
-      if (d < FLOWER_AVOID_RADIUS && d > 0.001f) {
-        steer += diff.normalized() *
-                 (FLOWER_AVOID_WEIGHT * (FLOWER_AVOID_RADIUS - d) / FLOWER_AVOID_RADIUS);
+    // 3. Leaf avoidance (soft steering).
+    if (LEAF_SHOULD_COLIDE) {
+      for (int k = 0; k < leafCount; k++) {
+        Vec2 diff = f.pos - leaves[k].pos;
+        float d = diff.length();
+        if (d < LEAF_AVOID_RADIUS && d > 0.001f) {
+          steer += diff.normalized() *
+                 (LEAF_AVOID_WEIGHT * (LEAF_AVOID_RADIUS - d) / LEAF_AVOID_RADIUS);
+        }
       }
-    }
+   }
 
     // 4. Boundary avoidance.
     steer += boundaryForce(f.pos) * (BOUNDARY_WEIGHT * 0.1f);
@@ -150,13 +149,13 @@ void updateFish(Fish fishes[], int fishCount, Flower flowers[], int flowerCount,
     if (f.pos.y < 1) f.pos.y = 1;
     if (f.pos.y > SCREEN_HEIGHT - 1) f.pos.y = SCREEN_HEIGHT - 1;
 
-    // 8. Hard flower-collision correction: never let a fish's center enter
-    //    a flower's hard radius, even under strong chase steering.
-    for (int k = 0; k < flowerCount; k++) {
-      Vec2 diff = f.pos - flowers[k].pos;
+    // 8. Hard leaf-collision correction: never let a fish's center enter
+    //    a leaf's hard radius, even under strong chase steering.
+    for (int k = 0; k < leafCount; k++) {
+      Vec2 diff = f.pos - leaves[k].pos;
       float d = diff.length();
-      if (d < FLOWER_HARD_RADIUS && d > 0.001f) {
-        f.pos += diff.normalized() * (FLOWER_HARD_RADIUS - d);
+      if (d < LEAF_HARD_RADIUS && d > 0.001f) {
+        f.pos += diff.normalized() * (LEAF_HARD_RADIUS - d);
       }
     }
 
@@ -173,5 +172,10 @@ void updateFish(Fish fishes[], int fishCount, Flower flowers[], int flowerCount,
     // 10. Advance tail wiggle animation.
     f.wigglePhase += FISH_WIGGLE_SPEED;
     if (f.wigglePhase > 1000.0f) f.wigglePhase -= 1000.0f;
+
+    // 11. Record the final, corrected position into the trail so the body
+    //     spine reflects where the fish actually ended up this frame.
+    memmove(&f.trail[1], &f.trail[0], sizeof(Vec2) * (TRAIL_LEN - 1));
+    f.trail[0] = f.pos;
   }
 }

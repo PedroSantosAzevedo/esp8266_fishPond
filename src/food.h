@@ -1,9 +1,9 @@
 #pragma once
 #include "vec2.h"
 
-// Forward declarations to avoid circular includes with fish.h/flower.h.
+// Forward declarations to avoid circular includes with fish.h/leaf.h.
 struct Fish;
-struct Flower;
+struct Leaf;
 
 // A single pixel of food that appears at a random point in the lake.
 struct Food {
@@ -13,7 +13,7 @@ struct Food {
 };
 
 // Handles eating (when a chasing fish reaches active food) and respawning
-// (after a random delay, at a random point clear of flowers).
+// (after a random delay, at a random point clear of leaves).
 void updateFood(Food foods[], int foodCount,
                  Fish fishes[], int fishCount,
-                 Flower flowers[], int flowerCount);
+                 Leaf leaves[], int leafCount);
