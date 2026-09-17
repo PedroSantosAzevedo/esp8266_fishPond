@@ -1,0 +1,60 @@
+<svg viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="640" height="380" fill="#ffffff"/>
+
+  <!-- ESP8266 board -->
+  <rect x="40" y="60" width="170" height="210" rx="10" fill="#eef3fb" stroke="#2b4c7e" stroke-width="2"/>
+  <text x="125" y="88" text-anchor="middle" font-size="15" font-weight="bold" fill="#2b4c7e">ESP8266</text>
+  <text x="125" y="106" text-anchor="middle" font-size="12" fill="#2b4c7e">(Wemos D1 Mini / NodeMCU)</text>
+
+  <!-- ESP8266 pins -->
+  <circle cx="210" cy="140" r="4" fill="#2b4c7e"/>
+  <text x="200" y="135" text-anchor="end" font-size="13" fill="#111">3V3</text>
+
+  <circle cx="210" cy="175" r="4" fill="#2b4c7e"/>
+  <text x="200" y="170" text-anchor="end" font-size="13" fill="#111">GND</text>
+
+  <circle cx="210" cy="210" r="4" fill="#2b4c7e"/>
+  <text x="200" y="205" text-anchor="end" font-size="13" fill="#111">D1 (GPIO5 / SCL)</text>
+
+  <circle cx="210" cy="245" r="4" fill="#2b4c7e"/>
+  <text x="200" y="240" text-anchor="end" font-size="13" fill="#111">D2 (GPIO4 / SDA)</text>
+
+  <!-- SSD1306 OLED board -->
+  <rect x="430" y="90" width="170" height="170" rx="10" fill="#eefbf1" stroke="#1f7a45" stroke-width="2"/>
+  <text x="515" y="118" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f7a45">SSD1306 OLED</text>
+  <text x="515" y="136" text-anchor="middle" font-size="12" fill="#1f7a45">128x64, I2C</text>
+
+  <!-- OLED pins -->
+  <circle cx="430" cy="165" r="4" fill="#1f7a45"/>
+  <text x="440" y="160" text-anchor="start" font-size="13" fill="#111">VCC</text>
+
+  <circle cx="430" cy="190" r="4" fill="#1f7a45"/>
+  <text x="440" y="185" text-anchor="start" font-size="13" fill="#111">GND</text>
+
+  <circle cx="430" cy="215" r="4" fill="#1f7a45"/>
+  <text x="440" y="210" text-anchor="start" font-size="13" fill="#111">SCL</text>
+
+  <circle cx="430" cy="240" r="4" fill="#1f7a45"/>
+  <text x="440" y="235" text-anchor="start" font-size="13" fill="#111">SDA</text>
+
+  <!-- Wires -->
+  <line x1="210" y1="140" x2="430" y2="165" stroke="#d1263b" stroke-width="2.5"/>
+  <line x1="210" y1="175" x2="430" y2="190" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="210" y1="210" x2="430" y2="215" stroke="#e0a800" stroke-width="2.5"/>
+  <line x1="210" y1="245" x2="430" y2="240" stroke="#1d63c9" stroke-width="2.5"/>
+
+  <!-- Legend -->
+  <text x="40" y="305" font-size="13" font-weight="bold" fill="#111">Wiring</text>
+
+  <line x1="40" y1="322" x2="70" y2="322" stroke="#d1263b" stroke-width="3"/>
+  <text x="78" y="326" font-size="12" fill="#111">3V3 -&gt; VCC (power)</text>
+
+  <line x1="40" y1="342" x2="70" y2="342" stroke="#1a1a1a" stroke-width="3"/>
+  <text x="78" y="346" font-size="12" fill="#111">GND -&gt; GND</text>
+
+  <line x1="280" y1="322" x2="310" y2="322" stroke="#e0a800" stroke-width="3"/>
+  <text x="318" y="326" font-size="12" fill="#111">D1 (GPIO5) -&gt; SCL (I2C clock)</text>
+
+  <line x1="280" y1="342" x2="310" y2="342" stroke="#1d63c9" stroke-width="3"/>
+  <text x="318" y="346" font-size="12" fill="#111">D2 (GPIO4) -&gt; SDA (I2C data)</text>
+</svg>
