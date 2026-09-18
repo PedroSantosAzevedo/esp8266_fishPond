@@ -143,14 +143,21 @@ adapted to be cheap enough for an ESP8266:
 - A triangle tail fin extends past the last spine point, its tip swaying side
   to side over time (`FISH_WIGGLE_SPEED`/`FISH_WIGGLE_AMPLITUDE`) for a
   swimming animation.
+- A small pectoral fin triangle on each side, attached at `FIN_ATTACH_SEGMENT`.
+  Each fin's base runs from the spine point out to the body edge (a real
+  wedge, not two nearly-coincident edge points — that degenerate base was
+  tried first and rasterized as a spike/wing instead of a fin), with the tip
+  swept out and back (`FIN_LENGTH`/`FIN_SWEEP`) using the same
+  tangent/perpendicular already computed for that segment, so the fins
+  follow the body's curve for free with no extra trig.
 
 This is a deliberate simplification of the reference sketch (which solves a
 full segment chain with angle constraints, plus separate fin/eye chains) —
-pectoral fins and eyes are skipped since at ~12px fish length on a 128x64
-1-bit display they cost more legibility than they add. The core visual
-payoff (a body that actually bends through turns instead of a rigid rotated
-sprite) carries over at a fraction of the CPU cost, which matters with
-`NUM_FISH` fish doing this every ~33ms.
+eyes are skipped since at ~12px fish length on a 128x64 1-bit display they'd
+cost more legibility than they add. The core visual payoff (a body that
+actually bends through turns instead of a rigid rotated sprite) carries over
+at a fraction of the CPU cost, which matters with `NUM_FISH` fish doing this
+every ~33ms.
 
 **Leaf visuals**: a lily pad is a filled circle with a wedge "bite" cut out
 of one side (drawn as a background-colored triangle), matching the notched
@@ -170,6 +177,7 @@ All tunable values live in [`src/config.h`](src/config.h):
 - **Body shape**: `NUM_BODY_SEGMENTS`, `SEGMENT_GAP_FRAMES`, `FISH_MAX_HALF_WIDTH`,
   `TAIL_FIN_LENGTH`, wiggle speed/amplitude, plus `BODY_WIDTH_PROFILE` (the
   per-segment taper shape) at the top of [`render.cpp`](src/render.cpp)
+- **Pectoral fins**: `FIN_ATTACH_SEGMENT`, `FIN_LENGTH`, `FIN_SWEEP`
 - **Leaf visuals**: `LEAF_RADIUS`, `LEAF_NOTCH_HALF_ANGLE`
 
 Increasing `NUM_FISH` or `NUM_LEAVES` beyond a handful on a 128x64 screen
@@ -195,7 +203,7 @@ Note that `SEGMENT_GAP_FRAMES` is tuned against the default `FISH_SPEED`
 
 ## Possible Extensions
 
-- Pectoral fins or eyes on the fish (skipped for now — see "How It Works")
+- Eyes on the fish (skipped for now — see "How It Works")
 - Bubble particles or a day/night background dim cycle
 - Button/PIR input to summon food at a chosen spot
 - Persist a "fish fed" counter to EEPROM/LittleFS

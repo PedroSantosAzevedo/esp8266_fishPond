@@ -28,6 +28,7 @@ void drawFood(Adafruit_SSD1306 &display, const Food &food) {
 
 void drawFish(Adafruit_SSD1306 &display, const Fish &fish) {
   Vec2 seg[NUM_BODY_SEGMENTS];
+  Vec2 tangent[NUM_BODY_SEGMENTS];
   Vec2 perp[NUM_BODY_SEGMENTS];
   int Lx[NUM_BODY_SEGMENTS], Ly[NUM_BODY_SEGMENTS], Rx[NUM_BODY_SEGMENTS], Ry[NUM_BODY_SEGMENTS];
 
@@ -36,16 +37,17 @@ void drawFish(Adafruit_SSD1306 &display, const Fish &fish) {
   }
 
   for (int i = 0; i < NUM_BODY_SEGMENTS; i++) {
-    Vec2 tangent;
+    Vec2 t;
     if (i == 0) {
-      tangent = seg[0] - seg[1];
+      t = seg[0] - seg[1];
     } else if (i == NUM_BODY_SEGMENTS - 1) {
-      tangent = seg[i - 1] - seg[i];
+      t = seg[i - 1] - seg[i];
     } else {
-      tangent = seg[i - 1] - seg[i + 1];
+      t = seg[i - 1] - seg[i + 1];
     }
-    tangent = tangent.normalized();
-    perp[i] = Vec2(-tangent.y, tangent.x);
+    t = t.normalized();
+    tangent[i] = t;
+    perp[i] = Vec2(-t.y, t.x);
 
     float halfW = BODY_WIDTH_PROFILE[i] * FISH_MAX_HALF_WIDTH;
     Vec2 l = seg[i] + perp[i] * halfW;
@@ -59,6 +61,25 @@ void drawFish(Adafruit_SSD1306 &display, const Fish &fish) {
   // Rounded nose.
   display.fillCircle((int)roundf(seg[0].x), (int)roundf(seg[0].y),
                       (int)roundf(BODY_WIDTH_PROFILE[0] * FISH_MAX_HALF_WIDTH), SSD1306_WHITE);
+
+  // Pectoral fins: one small triangle per side, attached to FIN_ATTACH_SEGMENT.
+  // The base runs from the spine point to the body edge (a real wedge, not
+  // two nearly-coincident edge points a segment apart), with the tip swept
+  // out and back from the spine. Drawn before the body strip so the body
+  // cleanly covers the base, leaving only the part past the edge visible.
+  {
+    int a = FIN_ATTACH_SEGMENT;
+    int segX = (int)roundf(seg[a].x), segY = (int)roundf(seg[a].y);
+    float halfW = BODY_WIDTH_PROFILE[a] * FISH_MAX_HALF_WIDTH;
+
+    Vec2 finTipL = seg[a] + perp[a] * (halfW + FIN_LENGTH) - tangent[a] * FIN_SWEEP;
+    display.fillTriangle(segX, segY, Lx[a], Ly[a], (int)roundf(finTipL.x), (int)roundf(finTipL.y),
+                          SSD1306_WHITE);
+
+    Vec2 finTipR = seg[a] - perp[a] * (halfW + FIN_LENGTH) - tangent[a] * FIN_SWEEP;
+    display.fillTriangle(segX, segY, Rx[a], Ry[a], (int)roundf(finTipR.x), (int)roundf(finTipR.y),
+                          SSD1306_WHITE);
+  }
 
   // Tapered body as a triangle strip between consecutive left/right edges.
   for (int i = 0; i < NUM_BODY_SEGMENTS - 1; i++) {

@@ -63,6 +63,14 @@
 #define FISH_WIGGLE_SPEED 0.35f       // radians of tail phase advanced per frame
 #define FISH_WIGGLE_AMPLITUDE 1.6f    // px of tail-tip sideways sway
 
+// Pectoral fins: a small triangle on each side, attached to one body
+// segment. They get their motion for free from that segment's own
+// tangent/perpendicular (already computed to draw the body), so they
+// follow the body's curve and heading with no extra trig per frame.
+#define FIN_ATTACH_SEGMENT 1          // which body segment the fins attach to
+#define FIN_LENGTH 1.5f               // px, how far a fin sticks out past the body edge
+#define FIN_SWEEP 1.5f                // px, how far back the fin tip is swept
+
 // ================= Leaf (lily pad) visual size =================
 #define LEAF_RADIUS 6.0f              // px
 #define LEAF_NOTCH_HALF_ANGLE 0.35f   // radians, half-width of the pac-man-style notch wedge
