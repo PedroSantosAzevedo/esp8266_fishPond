@@ -1,16 +1,24 @@
 #pragma once
 
-// Runtime switches, changed through serial commands (115200 baud).
+enum RainMode { RAIN_ON, RAIN_OFF_RIPPLES, RAIN_OFF_NO_RIPPLES };
+enum WindDir { WIND_OFF, WIND_LEFT, WIND_RIGHT };
+
+// Runtime switches, changed with three buttons (see config.h for pins).
 struct Controls {
+  // What the buttons change:
+  RainMode rainMode;
+  WindDir windDir;
+  int windIntensity;      // 1..RAIN_MAX_WIND
+
+  // Derived from the above; this is what the simulation reads.
   bool rainEnabled;
   bool ambientRipplesEnabled;
-  int wind;   // -RAIN_MAX_WIND..+RAIN_MAX_WIND, negative = drifts left
+  int wind;               // px/frame level, negative = drifts left, 0 = straight down
 };
 
 void initControls(Controls &c);
 
-// Reads pending serial characters and applies them:
-//   r  rain on/off      p  ambient ripples on/off
-//   a  wind left        d  wind right        s  no wind (straight down)
-//   ?  print help
-void handleSerialControls(Controls &c);
+// Polls the buttons (debounced) and the serial port, then updates c.
+// Serial mirrors the buttons for debugging (115200 baud): r = rain mode,
+// w = wind direction, i = wind intensity, ? = help.
+void updateControls(Controls &c);

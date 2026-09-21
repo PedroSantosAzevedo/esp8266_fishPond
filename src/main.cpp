@@ -78,7 +78,7 @@ void setup() {
 }
 
 void loop() {
-  handleSerialControls(controls);
+  updateControls(controls);
 
   unsigned long now = millis();
   if (now - lastFrameAt < FRAME_INTERVAL_MS) return;

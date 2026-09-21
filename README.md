@@ -197,19 +197,20 @@ Note that `SEGMENT_GAP_FRAMES` is tuned against the default `FISH_SPEED`
   every `RIPPLE_MIN_INTERVAL_MS`..`RIPPLE_MAX_INTERVAL_MS`.
 - **Rain** drops are short diagonal streaks that fall for a few frames; where
   each lands, a small ripple is created.
-- Both are switchable at runtime over serial (`pio device monitor`, 115200
-  baud). Type a single character:
+- Three push buttons control it (each wired between its pin and GND; internal
+  pull-ups are used, pins set in [`config.h`](src/config.h)):
 
-| Key | Action |
-|-----|--------|
-| `r` | rain on/off (drops already falling finish) |
-| `p` | ambient ripples on/off (rain ripples are unaffected) |
-| `a` / `d` | wind one step left / right (up to `RAIN_MAX_WIND`) |
-| `s` | no wind, straight down |
-| `?` | print help |
+| Button (pin) | Each press cycles |
+|--------------|-------------------|
+| Rain (GPIO14 / D5) | rain -> no rain + ambient ripples -> no rain, no ripples |
+| Wind direction (GPIO12 / D6) | off -> left -> right -> off |
+| Wind intensity (GPIO13 / D7) | level 1 -> 2 -> 3 -> 1 (`RAIN_MAX_WIND`) |
 
-Defaults at boot: `RAIN_DEFAULT_ON`, `AMBIENT_RIPPLES_DEFAULT_ON` in
-[`config.h`](src/config.h), along with the other `RAIN_*` / `RIPPLE_*` tunables.
+  While it rains, the ripples come from the drops themselves; the random
+  ambient ripples only run in the "no rain + ripples" mode. Already-falling
+  drops and spreading rings finish naturally after a switch. The same
+  actions are available over serial (`pio device monitor`, 115200 baud):
+  `r`, `w`, `i`, and `?` for help. Boot mode: `RAIN_DEFAULT_MODE`.
 
 ## Troubleshooting
 
