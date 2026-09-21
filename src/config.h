@@ -16,7 +16,8 @@
 #define NUM_FISH 3
 #define NUM_LEAVES 4
 #define NUM_FOOD 1
-#define NUM_RIPPLES 3                // max ripples alive at once
+#define NUM_RIPPLES 6                // max ripples alive at once (ambient + rain)
+#define NUM_RAINDROPS 10             // max raindrops in flight at once
 
 // ================= Timing =================
 #define FRAME_INTERVAL_MS 33UL       // ~30 fps target
@@ -85,3 +86,18 @@
 #define RIPPLE_DOT_FRAMES 8           // frames the initial dot is shown
 #define RIPPLE_GROWTH 0.3f            // px of radius gained per frame
 #define RIPPLE_MAX_RADIUS 14.0f       // px, ring fully faded at this radius
+
+// ================= Rain =================
+// Each drop is a short diagonal streak that falls for a few frames and, when
+// it lands, spawns a small ripple. Runtime controls (rain on/off, wind,
+// ambient ripples on/off) are serial commands, see controls.cpp.
+#define RAIN_DEFAULT_ON 1             // 1 = raining at boot
+#define AMBIENT_RIPPLES_DEFAULT_ON 1  // 1 = random ripples at boot
+#define RAIN_SPEED 4.0f               // px/frame of vertical fall
+#define RAIN_WIND_STEP 1.0f           // px/frame of sideways drift per wind level
+#define RAIN_MAX_WIND 3               // wind level goes from -RAIN_MAX_WIND to +RAIN_MAX_WIND
+#define RAIN_SPAWN_CHANCE_PCT 30      // % chance per frame of a new drop
+#define RAIN_MIN_FALL_FRAMES 5        // a drop falls for this many frames at least...
+#define RAIN_MAX_FALL_FRAMES 10       // ...and at most this many (sets where it starts)
+#define RAIN_STREAK_FRAC 0.6f         // streak length as a fraction of one frame's movement
+#define RAIN_RIPPLE_MAX_RADIUS 6.0f   // px, rain ripples are smaller than ambient ones

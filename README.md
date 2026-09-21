@@ -190,6 +190,27 @@ Note that `SEGMENT_GAP_FRAMES` is tuned against the default `FISH_SPEED`
 * FISH_SPEED` px) — if you change `FISH_SPEED` a lot, revisit
 `SEGMENT_GAP_FRAMES` to keep the fish a sensible size.
 
+## Rain, ripples and runtime controls
+
+- **Ripples** start as a single dot, then become a ring that grows and fades
+  (1-bit fade via ordered dithering). Ambient ripples appear at random spots
+  every `RIPPLE_MIN_INTERVAL_MS`..`RIPPLE_MAX_INTERVAL_MS`.
+- **Rain** drops are short diagonal streaks that fall for a few frames; where
+  each lands, a small ripple is created.
+- Both are switchable at runtime over serial (`pio device monitor`, 115200
+  baud). Type a single character:
+
+| Key | Action |
+|-----|--------|
+| `r` | rain on/off (drops already falling finish) |
+| `p` | ambient ripples on/off (rain ripples are unaffected) |
+| `a` / `d` | wind one step left / right (up to `RAIN_MAX_WIND`) |
+| `s` | no wind, straight down |
+| `?` | print help |
+
+Defaults at boot: `RAIN_DEFAULT_ON`, `AMBIENT_RIPPLES_DEFAULT_ON` in
+[`config.h`](src/config.h), along with the other `RAIN_*` / `RIPPLE_*` tunables.
+
 ## Troubleshooting
 
 - **Blank screen / boot loops on `display.begin()` failure**: the code halts

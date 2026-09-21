@@ -52,10 +52,17 @@ void drawRipple(Adafruit_SSD1306 &display, const Ripple &ripple) {
   }
 
   // Fade: dither level drops from 4 (solid) to 1 (sparse) as the ring grows.
-  float t = ripple.radius / RIPPLE_MAX_RADIUS;
+  float t = ripple.radius / ripple.maxRadius;
   int level = 4 - (int)(t * 4.0f);
   if (level < 1) level = 1;
   drawDitheredCircle(display, cx, cy, (int)roundf(ripple.radius), level);
+}
+
+void drawRaindrop(Adafruit_SSD1306 &display, const Raindrop &drop) {
+  if (!drop.active) return;
+  Vec2 tail = drop.pos - drop.vel * RAIN_STREAK_FRAC;
+  display.drawLine((int)roundf(tail.x), (int)roundf(tail.y),
+                    (int)roundf(drop.pos.x), (int)roundf(drop.pos.y), SSD1306_WHITE);
 }
 
 void drawLeaf(Adafruit_SSD1306 &display, const Leaf &leaf) {

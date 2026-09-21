@@ -10,6 +10,8 @@
 #include "food.h"
 #include "leaf.h"
 #include "ripple.h"
+#include "rain.h"
+#include "controls.h"
 #include "render.h"
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -18,6 +20,8 @@ Fish fishes[NUM_FISH];
 Leaf leaves[NUM_LEAVES];
 Food foods[NUM_FOOD];
 Ripple ripples[NUM_RIPPLES];
+Raindrop raindrops[NUM_RAINDROPS];
+Controls controls;
 
 unsigned long lastFrameAt = 0;
 
@@ -50,6 +54,8 @@ static void initLeaves() {
 }
 
 void setup() {
+  Serial.begin(115200);
+  initControls(controls);
   randomSeed(analogRead(A0));
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 
@@ -72,17 +78,21 @@ void setup() {
 }
 
 void loop() {
+  handleSerialControls(controls);
+
   unsigned long now = millis();
   if (now - lastFrameAt < FRAME_INTERVAL_MS) return;
   lastFrameAt = now;
 
-  updateRipples(ripples, NUM_RIPPLES);
+  updateRain(raindrops, NUM_RAINDROPS, ripples, NUM_RIPPLES, controls);
+  updateRipples(ripples, NUM_RIPPLES, controls.ambientRipplesEnabled);
   updateFood(foods, NUM_FOOD, fishes, NUM_FISH, leaves, NUM_LEAVES);
   assignChaser(fishes, NUM_FISH, foods, NUM_FOOD);
   updateFish(fishes, NUM_FISH, leaves, NUM_LEAVES, foods, NUM_FOOD);
 
   display.clearDisplay();
   for (int i = 0; i < NUM_RIPPLES; i++) drawRipple(display, ripples[i]);
+  for (int i = 0; i < NUM_RAINDROPS; i++) drawRaindrop(display, raindrops[i]);
   for (int i = 0; i < NUM_LEAVES; i++) drawLeaf(display, leaves[i]);
   for (int i = 0; i < NUM_FOOD; i++) drawFood(display, foods[i]);
   for (int i = 0; i < NUM_FISH; i++) drawFish(display, fishes[i]);
