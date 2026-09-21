@@ -9,6 +9,7 @@
 #include "fish.h"
 #include "food.h"
 #include "leaf.h"
+#include "ripple.h"
 #include "render.h"
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -16,6 +17,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Fish fishes[NUM_FISH];
 Leaf leaves[NUM_LEAVES];
 Food foods[NUM_FOOD];
+Ripple ripples[NUM_RIPPLES];
 
 unsigned long lastFrameAt = 0;
 
@@ -74,11 +76,13 @@ void loop() {
   if (now - lastFrameAt < FRAME_INTERVAL_MS) return;
   lastFrameAt = now;
 
+  updateRipples(ripples, NUM_RIPPLES);
   updateFood(foods, NUM_FOOD, fishes, NUM_FISH, leaves, NUM_LEAVES);
   assignChaser(fishes, NUM_FISH, foods, NUM_FOOD);
   updateFish(fishes, NUM_FISH, leaves, NUM_LEAVES, foods, NUM_FOOD);
 
   display.clearDisplay();
+  for (int i = 0; i < NUM_RIPPLES; i++) drawRipple(display, ripples[i]);
   for (int i = 0; i < NUM_LEAVES; i++) drawLeaf(display, leaves[i]);
   for (int i = 0; i < NUM_FOOD; i++) drawFood(display, foods[i]);
   for (int i = 0; i < NUM_FISH; i++) drawFish(display, fishes[i]);

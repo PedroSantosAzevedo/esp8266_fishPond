@@ -16,6 +16,7 @@
 #define NUM_FISH 3
 #define NUM_LEAVES 4
 #define NUM_FOOD 1
+#define NUM_RIPPLES 3                // max ripples alive at once
 
 // ================= Timing =================
 #define FRAME_INTERVAL_MS 33UL       // ~30 fps target
@@ -74,3 +75,13 @@
 // ================= Leaf (lily pad) visual size =================
 #define LEAF_RADIUS 6.0f              // px
 #define LEAF_NOTCH_HALF_ANGLE 0.35f   // radians, half-width of the pac-man-style notch wedge
+
+// ================= Ripples =================
+// A ripple starts as a single dot, then becomes a ring that grows and fades.
+// 1-bit fade is done with ordered dithering: the ring keeps fewer and fewer
+// of its pixels as it expands, until it disappears.
+#define RIPPLE_MIN_INTERVAL_MS 1500UL // min delay before the next ripple is spawned
+#define RIPPLE_MAX_INTERVAL_MS 5000UL
+#define RIPPLE_DOT_FRAMES 8           // frames the initial dot is shown
+#define RIPPLE_GROWTH 0.3f            // px of radius gained per frame
+#define RIPPLE_MAX_RADIUS 14.0f       // px, ring fully faded at this radius

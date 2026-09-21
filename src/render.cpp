@@ -11,6 +11,53 @@
 // the perpendicular (width) direction, plus one sin() for the tail wiggle.
 static const float BODY_WIDTH_PROFILE[NUM_BODY_SEGMENTS] = {0.45f, 0.85f, 1.0f, 0.85f, 0.6f, 0.32f};
 
+// 2x2 ordered-dither thresholds: a pixel is kept if its cell value < level (1..4).
+static const uint8_t BAYER_2X2[2][2] = {{0, 2}, {3, 1}};
+
+static void ditherPixel(Adafruit_SSD1306 &display, int x, int y, int level) {
+  if (x < 0 || y < 0 || x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT) return;
+  if (BAYER_2X2[y & 1][x & 1] < level) display.drawPixel(x, y, SSD1306_WHITE);
+}
+
+// Midpoint circle outline, with each pixel passed through the dither mask.
+static void drawDitheredCircle(Adafruit_SSD1306 &display, int cx, int cy, int r, int level) {
+  int x = r, y = 0, err = 1 - r;
+  while (x >= y) {
+    ditherPixel(display, cx + x, cy + y, level);
+    ditherPixel(display, cx - x, cy + y, level);
+    ditherPixel(display, cx + x, cy - y, level);
+    ditherPixel(display, cx - x, cy - y, level);
+    ditherPixel(display, cx + y, cy + x, level);
+    ditherPixel(display, cx - y, cy + x, level);
+    ditherPixel(display, cx + y, cy - x, level);
+    ditherPixel(display, cx - y, cy - x, level);
+    y++;
+    if (err < 0) {
+      err += 2 * y + 1;
+    } else {
+      x--;
+      err += 2 * (y - x) + 1;
+    }
+  }
+}
+
+void drawRipple(Adafruit_SSD1306 &display, const Ripple &ripple) {
+  if (!ripple.active) return;
+  int cx = (int)roundf(ripple.pos.x);
+  int cy = (int)roundf(ripple.pos.y);
+
+  if (ripple.dotFramesLeft > 0) {
+    ditherPixel(display, cx, cy, 4);
+    return;
+  }
+
+  // Fade: dither level drops from 4 (solid) to 1 (sparse) as the ring grows.
+  float t = ripple.radius / RIPPLE_MAX_RADIUS;
+  int level = 4 - (int)(t * 4.0f);
+  if (level < 1) level = 1;
+  drawDitheredCircle(display, cx, cy, (int)roundf(ripple.radius), level);
+}
+
 void drawLeaf(Adafruit_SSD1306 &display, const Leaf &leaf) {
   int cx = (int)roundf(leaf.pos.x);
   int cy = (int)roundf(leaf.pos.y);
